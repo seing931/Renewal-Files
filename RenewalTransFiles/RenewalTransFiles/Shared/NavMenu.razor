@@ -1,0 +1,101 @@
+﻿@using RenewalTransFiles.Models
+@using RenewalTransFiles.Services
+@inject MenuService MenuService
+
+<div class="top-row pl-4 navbar navbar-dark">
+    <a class="navbar-brand" href="">SIT Renewal 1.0</a>
+    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    @if (menuList == null)
+    {
+        <p><em>Loading....</em></p>
+    }
+    else
+    {
+        <ul class="nav flex-column">
+            @foreach (var mn in menuList)
+            {
+                @if (mn.ParentMenuId == 0)
+                {
+                    <li class="nav-item px-3">
+                        <NavLink class="nav-link" href="@mn.PageName" @onclick="()=>GetIsClicked(mn)">
+                            <span class="@mn.IconName" aria-hidden="true"></span>@mn.MenuName
+                        </NavLink>
+                        <ul class="nav flex-column">
+                            @foreach (var mn1 in menuList)
+                            {
+                                @if (mn.MenuId == mn1.ParentMenuId)
+                                {
+                                    @if (expandSubNav && mn.MenuId == clickedMenu)
+                                    {
+                                        <li class="nav-item px-3">
+                                            <NavLink class="nav-link" href="@mn1.PageName" @onclick="()=>GetIsClicked(mn1)">
+                                                <span class="@mn1.IconName" aria-hidden="true"></span>@mn1.MenuName
+                                            </NavLink>
+                                        </li>
+                                    }
+                                }
+                            }
+                        </ul>
+                    </li>
+                }
+            }
+        </ul>
+    }
+</div>
+
+
+@code {
+    private bool collapseNavMenu = true;
+    private bool expandSubNav;
+    private int clickedMenu = 0;
+    private bool hasPageName = true;
+    private int prevClickedMenu = 0;
+
+    public IEnumerable<MenuInfo> menuList;
+
+    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        if (hasPageName)
+        {
+            collapseNavMenu = !collapseNavMenu;
+        }
+
+    }
+
+    public void GetIsClicked(MenuInfo mn)
+    {
+        clickedMenu = mn.MenuId;
+        if (prevClickedMenu != clickedMenu)
+        {
+            expandSubNav = false;
+            if (mn.PageName != "" || mn.MenuName == "Home")
+            {
+                hasPageName = true;
+            }
+            else
+            {
+                expandSubNav = !expandSubNav;
+                hasPageName = false;
+            }
+        }
+        else
+        {
+            expandSubNav = !expandSubNav;
+        }
+
+        prevClickedMenu = clickedMenu;
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        menuList = await MenuService.GetMenuData();
+    }
+}

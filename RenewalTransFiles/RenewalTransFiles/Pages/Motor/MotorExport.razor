@@ -1,0 +1,360 @@
+﻿@page "/motorexport"
+@inject MotorPolicyService MotorPolicyService
+@inject IToastService ToastService
+@inject IJSRuntime JsRuntime
+@using System.IO
+@using ICSharpCode.SharpZipLib.Zip
+@using System.Text
+
+<TabControl>
+    <TabPage Text="Export CN">
+        <hr />
+        <div>Cover Note No:</div>
+        <div>
+            <textarea class="form-control" rows="5" @bind="@covernote" placeholder="Can type more than one Cover Note No here with comma" style="width:500px" />
+        </div>
+        <label><i>* Update JPJ Status to Successfully Captured by JPJ</i></label>
+        <br />
+        <button class="btn btn-primary" @onclick="search">Search</button>
+        <button class="btn btn-primary" @onclick="update">Update</button>
+        <button class="btn btn-primary" @onclick="export">Download</button>
+        <br />
+        <div class='@(AddClass ? "spinner" : "")'></div>
+        <div>
+            <br />
+            <SpinLoader IsLoading="isLoading">
+                <LoadingTemplate>
+                    <div class="col-12" style="background-color: lightgray; height:400px; vertical-align:middle">
+                        <br /><br />
+                        <Chase Center="true" Color="#c21f13" Size="70px"></Chase>
+                    </div>
+                </LoadingTemplate>
+                <ContentTemplate>
+                    @if (filteredAllMtrList != null)
+                    {
+                        <GridView Items="filteredAllMtrList" ReloadList="IsGridViewFiltered">
+                            <GridColumns>
+                                <GridColumnT ColumnTitle="Cover Note No"></GridColumnT>
+                                <GridColumnT ColumnTitle="Quo. No"></GridColumnT>
+                                <GridColumnT ColumnTitle="Policy Status"></GridColumnT>
+                                <GridColumnT ColumnTitle="JPJ Status"></GridColumnT>
+                                <GridColumnT ColumnTitle="Agent"></GridColumnT>
+                                <GridColumnT ColumnTitle="Issue Date"></GridColumnT>
+                                <GridColumnT ColumnTitle="Data Batch No"></GridColumnT>
+                            </GridColumns>
+                            <GridRow Context="allmotor">
+                                <td>@allmotor.CoverNoteNo</td>
+                                <td>@allmotor.QuotationNo</td>
+                                <td>@allmotor.PolicyStatus</td>
+                                <td>@allmotor.JPJStatus</td>
+                                <td>@allmotor.AgentCode</td>
+                                <td>@allmotor.IssueDate</td>
+                                <td>@allmotor.DataBatchNo</td>
+                            </GridRow>
+                        </GridView>
+                    }
+                </ContentTemplate>
+            </SpinLoader>
+        </div>
+    </TabPage>
+    <TabPage Text="Pending Export">
+        <hr />
+        <div class="col-12">
+            <h3><b>Policy Issued</b></h3>
+            <SpinLoader IsLoading="isLoading">
+                <LoadingTemplate>
+                    <div class="col-12" style="background-color: lightgray; height:400px; vertical-align:middle">
+                        <br /><br />
+                        <Chase Center="true" Color="#c21f13" Size="70px"></Chase>
+                    </div>
+                </LoadingTemplate>
+                <ContentTemplate>
+                    @if (filteredMotorList != null)
+                    {
+                        @*<input type="checkbox" @onchange="@(e => OnMotorSearchTextChanged(e, "IsChecked"))" />
+                            <label>Only show checked record(s)</label>*@
+                        <GridView Items="filteredMotorList" ReloadList="IsGridViewFiltered">
+                            <GridColumns>
+                                <GridColumn ColumnTitle="Cover Note No"
+                                            OnSearchTextChanged="@(e => OnMotorSearchTextChanged(e, "CoverNoteNo"))"></GridColumn>
+                                <GridColumn ColumnTitle="Quo. No"
+                                            OnSearchTextChanged="@(e => OnMotorSearchTextChanged(e, "QuotationNo"))"></GridColumn>
+                                <GridColumn ColumnTitle="JPJ Status"
+                                            OnSearchTextChanged="@(e => OnMotorSearchTextChanged(e, "JPJStatus"))"></GridColumn>
+                                <GridColumn ColumnTitle="Agent"
+                                            OnSearchTextChanged="@(e => OnMotorSearchTextChanged(e, "AgentCode"))"></GridColumn>
+                                <GridColumn ColumnTitle="Issue Date"
+                                            OnSearchTextChanged="@(e => OnMotorSearchTextChanged(e, "IssueDate"))"></GridColumn>
+                            </GridColumns>
+                            <GridRow Context="motor">
+                                @*<td>
+                                        <input type="checkbox" @bind="@motor.IsChecked" />
+                                    </td>*@
+                                <td>@motor.CoverNoteNo</td>
+                                <td>@motor.QuotationNo</td>
+                                <td>@motor.JPJStatus</td>
+                                <td>@motor.AgentCode</td>
+                                <td>@motor.IssueDate</td>
+                            </GridRow>
+                        </GridView>
+                    }
+                </ContentTemplate>
+            </SpinLoader>
+        </div>
+        <br />
+    </TabPage>
+</TabControl>
+
+@code{
+    bool isLoading = true;
+    bool Err = false;
+    int i = 0;
+    string ErrCN;
+    string path = @"C:\Renewal_CN\";
+    public bool IsGridViewFiltered { get; set; }
+    public MotorPolicy motor { get; set; }
+    public MotorPolicy allmotor { get; set; }
+    public List<MotorPolicy> MotorList { get; set; }
+    public List<MotorPolicy> AllMtrList { get; set; }
+    public List<MotorPolicy> filteredMotorList { get; set; }
+    public List<MotorPolicy> filteredAllMtrList { get; set; }
+    private string covernote { get; set; }
+    private bool AddClass = false;
+    [Inject]
+    private IFileSave FileSaver { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Console.WriteLine("Motors - OnInitialized");
+        base.OnInitialized();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Console.WriteLine("Motors - OnInitializedAsync");
+
+        motor = new MotorPolicy();
+        MotorList = new List<MotorPolicy>();
+
+        await base.OnInitializedAsync();
+    }
+
+    protected override void OnParametersSet()
+    {
+        Console.WriteLine("Motors - OnParametersSet");
+        base.OnParametersSet();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Console.WriteLine("Motors - OnParametersSetAsync");
+        await base.OnParametersSetAsync();
+    }
+
+    protected override bool ShouldRender()
+    {
+        base.ShouldRender();
+        Console.WriteLine("Motors - ShouldRender");
+
+        return true;
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        Console.WriteLine("Motors - OnAfterRender - firstRender = " + firstRender);
+        base.OnAfterRender(firstRender);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        Console.WriteLine("Motors - OnAfterRenderAsync - firstRender = " + firstRender);
+
+        if (firstRender)
+        {
+            await LoadMotors();
+
+            isLoading = false;
+            StateHasChanged();
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    public void Dispose()
+    {
+        Console.WriteLine("Motors - Dispose");
+    }
+
+    private async Task LoadMotors()
+    {
+        await Task.Delay(500);
+
+        MotorList = filteredMotorList = await MotorPolicyService.GetIssueMotor();
+
+        StateHasChanged();
+    }
+
+    private void OnMotorSearchTextChanged(ChangeEventArgs changeEventArgs, string columnTitle)
+    {
+        string searchText = changeEventArgs.Value.ToString();
+        IsGridViewFiltered = true;
+
+        switch (columnTitle)
+        {
+            case "CoverNoteNo":
+                filteredMotorList = MotorList.Where(motor => motor.CoverNoteNo.ToString().Contains(searchText)).ToList();
+                break;
+            case "QuotationNo":
+                filteredMotorList = MotorList.Where(motor => motor.QuotationNo.ToString().Contains(searchText)).ToList();
+                break;
+            case "JPJStatus":
+                filteredMotorList = MotorList.Where(motor => motor.JPJStatus.ToString().Contains(searchText)).ToList();
+                break;
+            case "AgentCode":
+                filteredMotorList = MotorList.Where(motor => motor.AgentCode.ToString().Contains(searchText)).ToList();
+                break;
+            case "IssueDate":
+                filteredMotorList = MotorList.Where(motor => motor.IssueDate.ToString().Contains(searchText)).ToList();
+                break;
+            default:
+                Console.WriteLine("Default case");
+                break;
+        }
+    }
+
+    private async Task update()
+    {
+        if (covernote == null)
+        {
+            ToastService.ShowWarning("Please enter Cover Note No.");
+        }
+        else if (covernote == "")
+        {
+            IsGridViewFiltered = true;
+            AllMtrList = filteredAllMtrList = await MotorPolicyService.SearchMotor(covernote.Replace(" ", ""));
+            StateHasChanged();
+
+            ToastService.ShowWarning("Please enter Cover Note No.");
+        }
+        else
+        {
+            string[] result = covernote.Replace(" ", "").Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string strCN in result)
+            {
+                i = i + 1;
+
+                AllMtrList = filteredAllMtrList = await MotorPolicyService.GetPendMotor(strCN);
+
+                if (AllMtrList == null || AllMtrList.Count == 0)
+                {
+                    Err = true;
+
+                    if (i == 1)
+                    {
+                        ErrCN = strCN;
+                    }
+                    else
+                    {
+                        ErrCN = ErrCN + "," + strCN;
+                    }
+                }
+            }
+
+            if (i == 1)
+            {
+                ErrCN = ErrCN + " is";
+            }
+            else
+            {
+                ErrCN = ErrCN + " are";
+            }
+
+            i = 0;
+
+            if (Err == true)
+            {
+                IsGridViewFiltered = true;
+                AllMtrList = filteredAllMtrList = await MotorPolicyService.SearchMotor(covernote.Replace(" ", ""));
+                StateHasChanged();
+
+                ToastService.ShowError(ErrCN + " not under Policy Issued/ pending JPJ");
+            }
+            else
+            {
+                MotorPolicyService.UpdStatus(covernote.Replace(" ", ""));
+                IsGridViewFiltered = true;
+                AllMtrList = filteredAllMtrList = await MotorPolicyService.SearchMotor(covernote.Replace(" ", ""));
+                MotorList = filteredMotorList = await MotorPolicyService.GetIssueMotor();
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task search()
+    {
+        if (covernote == "" || covernote == null)
+        {
+            ToastService.ShowWarning("Please enter Cover Note No.");
+        }
+        else
+        {
+            IsGridViewFiltered = true;
+            AllMtrList = filteredAllMtrList = await MotorPolicyService.SearchMotor(covernote.Replace(" ", ""));
+            StateHasChanged();
+        }
+    }
+
+    private async Task export()
+    {
+        if (covernote == "" || covernote == null)
+        {
+            ToastService.ShowWarning("Please enter Cover Note No.");
+        }
+        else
+        {
+            AddClass = true;
+
+            MotorPolicyService.ExportTo(covernote.Replace(" ", ""));
+
+            await addZipEntry(path);
+
+            AddClass = false;
+
+            ToastService.ShowSuccess("Generate files Completed.");
+        }
+    }
+
+    private async Task addZipEntry(string PathStr)
+    {
+        DirectoryInfo di = new DirectoryInfo(PathStr);
+
+        foreach (DirectoryInfo item in di.GetDirectories())
+        {
+            await addZipEntry(item.FullName);
+        }
+
+        using (MemoryStream ms = new MemoryStream())
+        {
+            using (ZipOutputStream zipSream = new ZipOutputStream(ms))
+            {
+                foreach (FileInfo item in di.GetFiles())
+                {
+                    FileStream fs = File.OpenRead(item.FullName);
+                    byte[] buffer = new byte[fs.Length];
+                    fs.Read(buffer, 0, buffer.Length);
+                    string strEntryName = item.FullName;
+                    ZipEntry entry = new ZipEntry(strEntryName);
+                    zipSream.PutNextEntry(entry);
+                    zipSream.Write(buffer, 0, buffer.Length);
+                    fs.Close();
+                }
+            }
+
+            await FileSaver.SaveAsBase64("Renewal_CN.zip", Convert.ToBase64String(ms.ToArray()), "application/zip");
+        }
+    }
+}
+
+
+

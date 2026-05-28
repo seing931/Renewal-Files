@@ -1,0 +1,23 @@
+﻿@inherits LayoutComponentBase
+@using Blazored.Toast.Configuration
+
+<div class="sidebar">
+    <NavMenu />
+</div>
+
+<div class="main">
+    <div class="top-row px-4">
+        @*<a href="http://192.168.0.60:8200/" target="_blank">TAOS</a>*@
+    </div>
+    <div class="content px-4">
+        @Body
+    </div>
+</div>
+
+<BlazoredToasts Position="ToastPosition.BottomRight" IconType="IconType.FontAwesome" 
+                SuccessClass="success-toast-override"
+                SuccessIcon="fa fa-thumbs-up" 
+                ErrorIcon="fa fa-bug" 
+                InfoIcon="fa fa-info"
+                WarningIcon="fa fa-warning"
+                Timeout="4" />

@@ -1,0 +1,15 @@
+﻿<th style="background-image: linear-gradient(180deg, #bd0314 0%, #721c31 70%);">
+    <div class="col-10 row" style="color:white;">
+        @ColumnTitle
+        @if (ColumnTitle != "")
+        {<input class="form-control" placeholder="search" @oninput="OnSearchTextChanged" />}
+    </div>    
+</th>
+
+@code {
+    [Parameter]
+    public string ColumnTitle { get; set; }
+
+    [Parameter]
+    public EventCallback<ChangeEventArgs> OnSearchTextChanged { get; set; }
+}
