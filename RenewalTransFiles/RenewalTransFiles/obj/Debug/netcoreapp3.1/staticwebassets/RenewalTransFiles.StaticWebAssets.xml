@@ -1,0 +1,4 @@
+﻿<StaticWebAssets Version="1.0">
+  <ContentRoot BasePath="_content/Blazored.Toast" Path="C:\Users\sueyseing.ko\.nuget\packages\blazored.toast\3.2.2\build\..\staticwebassets\" />
+  <ContentRoot BasePath="_content/BlazorPro.Spinkit" Path="C:\Users\sueyseing.ko\.nuget\packages\blazorpro.spinkit\1.2.0\build\..\staticwebassets\" />
+</StaticWebAssets>
